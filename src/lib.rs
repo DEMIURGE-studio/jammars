@@ -37,25 +37,29 @@ impl Rules {
         match self {
             Self::Rule(rule) => {
                 let mut matches = grid.find(rule.pattern.clone(), &rule.symmetry);
-                println!("Found {} matches", matches.len());
                 rule.apply(grid, &mut matches)
             },
             Self::Custom(_rule) => _rule(grid),
             Self::One(rules, index) => {
-                let mut rule = rules[*index].clone();
-                let mut matches = grid.find(rule.pattern.clone(), &rule.symmetry);
-                if rule.apply(grid, &mut matches) {
-                    if *index < rules.len() {
-                        *index += 1;
+                // TODO: Fix by cloning the rules first, shuffling, and removing from the cloned version to allow knowing when no more matches can be found
+                if let Some(mut rule) = rules.choose(&mut grid.rng).cloned() {
+                    let mut matches = grid.find(rule.pattern.clone(), &rule.symmetry);
+                    if rule.apply(grid, &mut matches) {
+                        if *index < rules.len() - 1 {
+                            *index += 1;
+                        } else {
+                            *index = 0;
+                        }
+                        true
                     } else {
-                        *index = 0;
+                        false
                     }
-                    true
                 } else {
                     false
                 }
             },
             Self::All(rules, index, matches) => {
+                // TODO: Fix this by initializing the matches with for loop so that all matches for all rules at this time are accounted for
                 let mut rule = rules[*index].clone();
                 match matches {
                     None => {
@@ -157,7 +161,7 @@ impl Grid {
         }
     }
 
-    pub fn find(&self, pattern: Pattern, symmetry: &Vec<usize>) -> Vec<Match> {
+    pub fn find(&self, mut pattern: Pattern, symmetry: &Vec<usize>) -> Vec<Match> {
         let mut results = Vec::new();
         let mut rotations = vec![Rotation::None];
         if symmetry.contains(&0) {
@@ -167,15 +171,16 @@ impl Grid {
             rotations.push(Rotation::Clockwise);
             rotations.push(Rotation::Counter);
         }
-        let mut temp = pattern.clone();
-        for ((x, y), _) in self.tiles.indexed_iter() {
-            for rotation in &rotations {
-                temp.rotate(*rotation);
-                if self.fits(Vec2 { x, y }, &temp) {
-                    results.push(Match {
-                        pat: temp.clone(),
-                        pos: Vec2 { x, y },
-                    });
+        for y in 0..self.size.y {
+            for x in 0..self.size.x {
+                for rotation in &rotations {
+                    pattern.rotate(*rotation);
+                    if self.fits(Vec2 { x, y }, &pattern) {
+                        results.push(Match {
+                            pat: pattern.clone(),
+                            pos: Vec2 { x, y },
+                        });
+                    }
                 }
             }
         }
@@ -186,7 +191,7 @@ impl Grid {
         let mut matching = true;
         for ((x, y), &find) in pattern.find.indexed_iter() {
             if let Some(&tile) = self.get(pos.x + x, pos.y + y) {
-                if tile != find { //&& !(tile == '*' || find == '*') {
+                if tile != find && !(tile == '*' || find == '*') {
                     matching = false;
                     break;
                 }
@@ -199,11 +204,10 @@ impl Grid {
     }
 
     pub fn replace(&mut self, pos: Vec2, pattern: &Pattern) {
-        for ((x, y), &r) in pattern.replace.indexed_iter() {
+        for ((x, y), &replace) in pattern.replace.indexed_iter() {
             if let Some(tile) = self.get_mut(pos.x + x, pos.y + y) {
-                if r != '*' {
-                    println!("Placing {} at ({}, {})", r, pos.x + x, pos.y + y);
-                    *tile = r;
+                if replace != '*' {
+                    *tile = replace;
                 }
             }
         }
@@ -235,10 +239,10 @@ pub struct Match {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Rotation {
-    Clockwise,
-    Counter,
-    Mirror,
-    None,
+    Clockwise, // 90
+    Counter, // 270
+    Mirror, // 180
+    None, // 0
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -278,14 +282,14 @@ impl Pattern {
             Rotation::Clockwise => {
                 self.find.swap_axes(0, 1);
                 self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(1));
-                self.replace.invert_axis(Axis(1));
+                self.find.invert_axis(Axis(0));
+                self.replace.invert_axis(Axis(0));
             },
             Rotation::Counter => {
                 self.find.swap_axes(0, 1);
                 self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(0));
-                self.replace.invert_axis(Axis(0));
+                self.find.invert_axis(Axis(1));
+                self.replace.invert_axis(Axis(1));
             },
             Rotation::Mirror => {
                 self.find.invert_axis(Axis(1));

@@ -19,8 +19,10 @@ fn main() {
         ],
     ];
     let mut count = 0;
-    if !rule.apply(&mut grid) {
-        count += 1;
+    while count < 100 {
+        if !rule.apply(&mut grid) {
+            count += 1;
+        }
     }
     for ((x, y), tile) in grid.tiles.indexed_iter() {
         #[cfg(feature = "colors")]
