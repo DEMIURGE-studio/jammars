@@ -73,7 +73,7 @@ macro_rules! one {
     ($($rule:expr),+ $(,)?) => {
         Rules::One(vec![
             $( $rule, )*
-        ], 0)
+        ],)
     };
 }
 
@@ -82,7 +82,7 @@ macro_rules! all {
     ($($rule:expr),+ $(,)?) => {
         Rules::All(vec![
             $( $rule, )*
-        ],)
+        ], None)
     };
 }
 

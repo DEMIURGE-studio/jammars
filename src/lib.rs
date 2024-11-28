@@ -21,8 +21,8 @@ pub enum Rules {
     /// `One`` takes a set of rewrite rules.
     /// Each step, it will find all rules that have at least one match on the grid, and apply a random match to apply.
     /// `One` will end if there are no rules left that have any matches.
-    One(Vec<Rule>, usize),
-    All(Vec<Rule>, usize, Option<Vec<Match>>),
+    One(Vec<Rule>),
+    All(Vec<Rule>, Option<Vec<(usize, Match)>>),
 
     Standard(Vec<Rules>),
     Sequence(Vec<Rules>, usize),
@@ -40,39 +40,49 @@ impl Rules {
                 rule.apply(grid, &mut matches)
             },
             Self::Custom(_rule) => _rule(grid),
-            Self::One(rules, index) => {
-                // TODO: Fix by cloning the rules first, shuffling, and removing from the cloned version to allow knowing when no more matches can be found
-                if let Some(mut rule) = rules.choose(&mut grid.rng).cloned() {
-                    let mut matches = grid.find(rule.pattern.clone(), &rule.symmetry);
-                    if rule.apply(grid, &mut matches) {
-                        if *index < rules.len() - 1 {
-                            *index += 1;
-                        } else {
-                            *index = 0;
-                        }
-                        true
-                    } else {
-                        false
+            Self::One(rules) => {
+                let mut matches = Vec::new();
+                for (i, rule) in rules.iter().enumerate() {
+                    if rule.origin.get() != ' ' {
+                        grid.set_origin(rule.origin.get());
+                        rule.origin.replace(' ');
                     }
+                    for m in grid.find(rule.pattern.clone(), &rule.symmetry) {
+                        matches.push((i, m));
+                    }
+                }
+                if let Some((i, m)) = matches.choose(&mut grid.rng) {
+                    rules[*i].apply(grid, &mut vec![m.clone()])
                 } else {
                     false
                 }
             },
-            Self::All(rules, index, matches) => {
-                // TODO: Fix this by initializing the matches with for loop so that all matches for all rules at this time are accounted for
-                let mut rule = rules[*index].clone();
-                match matches {
-                    None => {
-                        *matches = Some(grid.find(rule.pattern.clone(), &rule.symmetry));
-                        if let Some(matches) = matches {
-                            rule.apply(grid, matches)
-                        } else {
-                            false
+            Self::All(rules, matches) => {
+                if let None = matches {
+                    let mut temp = Vec::new();
+                    for (i, rule) in rules.iter().enumerate() {
+                        if rule.origin.get() != ' ' {
+                            grid.set_origin(rule.origin.get());
+                            rule.origin.replace(' ');
                         }
-                    },
-                    Some(matches) => {
-                        rule.apply(grid, matches)
-                    },
+                        for m in grid.find(rule.pattern.clone(), &rule.symmetry) {
+                            temp.push((i, m));
+                        }
+                    }
+                    if !temp.is_empty() {
+                        *matches = Some(temp);
+                    }
+                }
+                if let Some(matching) = matches {
+                    if matching.is_empty() {
+                        return false;
+                    }
+                    let i = grid.rng.gen_range(0..matching.len());
+                    let (i, choice) = matching.remove(i);
+                    rules[i].apply(grid, &mut vec![choice.clone()]);
+                    true
+                } else {
+                    false
                 }
             },
             Self::Standard(rules) => {
@@ -84,8 +94,8 @@ impl Rules {
                 false
             },
             Self::Sequence(rules, index) => {
-                if rules[*index].apply(grid) {
-                    if *index < rules.len() {
+                if !rules[*index].apply(grid) {
+                    if *index < rules.len() - 1 {
                         *index += 1;
                         return true;
                     } else {
@@ -119,20 +129,12 @@ pub struct Rule {
 
 impl Rule {
     pub fn apply(&mut self, grid: &mut Grid, matches: &mut Vec<Match>) -> bool {
-        if self.origin.get() != ' ' {
-            let x = grid.size.x / 2;
-            let y = grid.size.y / 2;
-            if let Some(tile) = grid.get_mut(x, y) {
-                *tile = self.origin.get();
-                self.origin.replace(' ');
-            }
-        }
         if !matches.is_empty() {
             let i = grid.rng.gen_range(0..matches.len());
             let choice = matches.remove(i);
             //self.pattern.rotate(choice.rot);
-            if grid.fits(choice.pos, &self.pattern) {
-                grid.replace(choice.pos, &self.pattern);
+            if grid.fits(choice.pos, &choice.pattern) {
+                grid.replace(choice.pos, &choice.pattern);
                 true
             } else {
                 false
@@ -162,6 +164,7 @@ impl Grid {
     }
 
     pub fn find(&self, mut pattern: Pattern, symmetry: &Vec<usize>) -> Vec<Match> {
+        let original = pattern.clone();
         let mut results = Vec::new();
         let mut rotations = vec![Rotation::None];
         if symmetry.contains(&0) {
@@ -175,9 +178,14 @@ impl Grid {
             for x in 0..self.size.x {
                 for rotation in &rotations {
                     pattern.rotate(*rotation);
+                    if *rotation != Rotation::None {
+                        if pattern.find == original.find {
+                            continue;
+                        }
+                    }
                     if self.fits(Vec2 { x, y }, &pattern) {
                         results.push(Match {
-                            pat: pattern.clone(),
+                            pattern: pattern.clone(),
                             pos: Vec2 { x, y },
                         });
                     }
@@ -220,6 +228,12 @@ impl Grid {
     pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char> {
         self.tiles.get_mut((x, y))
     }
+
+    pub fn set_origin(&mut self, origin: char) {
+        if let Some(tile) = self.get_mut(self.size.x / 2, self.size.y / 2) {
+            *tile = origin;
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -232,7 +246,7 @@ pub struct Vec2 {
 #[derive(Clone, Debug)]
 pub struct Match {
     /// The Rule which this is a match for
-    pub pat: Pattern,
+    pub pattern: Pattern,
     /// The position of the top left corner of match
     pub pos: Vec2,
 }
@@ -282,14 +296,14 @@ impl Pattern {
             Rotation::Clockwise => {
                 self.find.swap_axes(0, 1);
                 self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(0));
-                self.replace.invert_axis(Axis(0));
+                self.find.invert_axis(Axis(1));
+                self.replace.invert_axis(Axis(1));
             },
             Rotation::Counter => {
                 self.find.swap_axes(0, 1);
                 self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(1));
-                self.replace.invert_axis(Axis(1));
+                self.find.invert_axis(Axis(0));
+                self.replace.invert_axis(Axis(0));
             },
             Rotation::Mirror => {
                 self.find.invert_axis(Axis(1));
