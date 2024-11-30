@@ -5,8 +5,8 @@ use chain::*;
 
 mod performance;
 
-const WIDTH: usize = 100;
-const HEIGHT: usize = 25;
+const WIDTH: usize = 212;
+const HEIGHT: usize = 52;
 
 fn main() {
     let ups = performance::UpdatesCounter::new();
@@ -14,10 +14,10 @@ fn main() {
     let mut grid = Grid::new(Vec2 { x: WIDTH, y: HEIGHT }, "BWRUGE");
 
     let mut rules = sequence![
-        repeat![1, one![
+        repeat![5, one![
             rule![array![['B']], array![['W']],],
         ]],
-        repeat![1, one![
+        repeat![5, one![
             rule![array![['B']], array![['R']],],
         ]],
         one![

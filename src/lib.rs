@@ -23,6 +23,7 @@ pub enum Rules {
     /// `One` will end if there are no rules left that have any matches.
     One(Vec<Rule>),
     All(Vec<Rule>, Option<Vec<(usize, Match)>>),
+    // I don't think I can implement the prl node in rust at this time.
 
     Standard(Vec<Rules>),
     Sequence(Vec<Rules>, usize),
