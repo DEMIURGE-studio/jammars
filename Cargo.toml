@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-delaunator = "1"
-bevy_utils = "0.14"
 ndarray = "0.16"
 rand = "0.8"
 rand_chacha = "0.3"
