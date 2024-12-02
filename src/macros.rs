@@ -7,7 +7,7 @@ macro_rules! rules {
                 replace: $replace,
                 current: Rotation::None,
             },
-            origin: std::cell::Cell::new(' '),
+            origin: ' ',
             symmetry: vec![0, 1],
         })
     };
@@ -18,7 +18,7 @@ macro_rules! rules {
                 replace: $replace,
                 current: Rotation::None,
             },
-            origin: [$(std::cell::Cell::new($origin),)? std::cell::Cell::new(' ')][0].clone(),
+            origin: [$($origin,)? ' '][0].clone(),
             symmetry: [$($symmetry,)? vec![0, 1]][0].clone(),
         })
     };
@@ -33,7 +33,7 @@ macro_rules! rule {
                 replace: $replace,
                 current: Rotation::None,
             },
-            origin: std::cell::Cell::new(' '),
+            origin: ' ',
             symmetry: vec![0, 1],
         }
     };
@@ -44,7 +44,7 @@ macro_rules! rule {
                 replace: $replace,
                 current: Rotation::None,
             },
-            origin: [$(std::cell::Cell::new($origin),)? std::cell::Cell::new(' ')][0].clone(),
+            origin: [$($origin,)? ' '][0].clone(),
             symmetry: [$($symmetry,)? vec![0, 1]][0].clone(),
         }
     };
