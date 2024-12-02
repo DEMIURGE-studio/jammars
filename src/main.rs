@@ -12,7 +12,7 @@ fn main() {
     let ups = performance::UpdatesCounter::new();
     let mut last = Instant::now();
     let mut grid = Grid::new(Vec2 { x: WIDTH, y: HEIGHT }, "BWRUGE");
-
+    /*
     let mut rules = sequence![
         repeat![5, one![
             rule![array![['B']], array![['W']],],
@@ -48,6 +48,16 @@ fn main() {
             rule![array![['G', 'B']], array![['*', 'G']],],
         ],
     ];
+    */
+    let mut rules = standard![
+        one![rule![array![['R', 'B', 'B']], array![['R', 'B', 'R']], origin='R']],
+        one![rule![array![['R', 'B', 'R', 'B']], array![['R', 'A', 'R', 'B']]]],
+        one![rule![array![['R']], array![['A']]]],
+        one![rule![
+            array![['A', 'A', 'A'], ['A', 'B', 'A'], ['A', 'A', 'A']],
+            array![['A', 'A', 'A'], ['A', 'A', 'A'], ['A', 'A', 'A']],
+        ]],
+    ];
     print!("\x1B[2J");
     let mut temp = grid.tiles.clone();
     loop {
@@ -72,7 +82,16 @@ fn main() {
             }
         }
         temp = grid.tiles.clone();
-
     }
+    /*while rules.apply(&mut grid) {}
+    for ((x, y), tile) in grid.tiles.indexed_iter() {
+        #[cfg(feature = "colors")]
+        {
+            let [r, g, b] = alphabet_color(*tile);
+            print!("\x1B[{};{}f\x1B[48;2;{};{};{}m ", y + 1, x + 1, r, g, b);
+        }
+        #[cfg(not(feature = "colors"))]
+        print!("\x1B[{};{}f{}", y + 1, x + 1, tile);
+    }*/
     print!("\x1B[27;0fTook {:.2?}", ups.start.elapsed());
 }
