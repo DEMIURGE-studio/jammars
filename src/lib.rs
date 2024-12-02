@@ -2,7 +2,6 @@
 use ndarray::prelude::*;
 use rand::prelude::*;
 use rand_chacha::ChaChaRng;
-use std::cell::Cell;
 
 #[macro_use]
 mod macros;
@@ -43,10 +42,10 @@ impl Rules {
             Self::Custom(_rule) => _rule(grid),
             Self::One(rules) => {
                 let mut matches = Vec::new();
-                for (i, rule) in rules.iter().enumerate() {
-                    if rule.origin.get() != ' ' {
-                        grid.set_origin(rule.origin.get());
-                        rule.origin.replace(' ');
+                for (i, rule) in rules.iter_mut().enumerate() {
+                    if rule.origin != ' ' {
+                        grid.set_origin(rule.origin);
+                        rule.origin = ' ';
                     }
                     for m in grid.find(rule.pattern.clone(), &rule.symmetry) {
                         matches.push((i, m));
@@ -61,10 +60,10 @@ impl Rules {
             Self::All(rules, matches) => {
                 if let None = matches {
                     let mut temp = Vec::new();
-                    for (i, rule) in rules.iter().enumerate() {
-                        if rule.origin.get() != ' ' {
-                            grid.set_origin(rule.origin.get());
-                            rule.origin.replace(' ');
+                    for (i, rule) in rules.iter_mut().enumerate() {
+                        if rule.origin != ' ' {
+                            grid.set_origin(rule.origin);
+                            rule.origin = ' ';
                         }
                         for m in grid.find(rule.pattern.clone(), &rule.symmetry) {
                             temp.push((i, m));
@@ -124,7 +123,7 @@ impl Rules {
 #[derive(Clone)]
 pub struct Rule {
     pub pattern: Pattern,
-    pub origin: Cell<char>,
+    pub origin: char,
     pub symmetry: Vec<usize>,
 }
 
