@@ -1,7 +1,7 @@
 use ndarray::prelude::*;
 use std::time::{Duration, Instant};
 
-use chain::*;
+use jammars::*;
 
 mod performance;
 
