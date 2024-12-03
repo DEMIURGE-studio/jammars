@@ -72,7 +72,7 @@ pub fn rule(input: TokenStream) -> TokenStream {
     let output = quote!{
         Rule {
             pattern: Pattern {
-                current: Rotation::None,
+                current: jammars::Rotation::None,
                 find: array![#(#find),*],
                 replace: array![#(#replace),*],
             },
