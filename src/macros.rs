@@ -1,56 +1,4 @@
 #[macro_export]
-macro_rules! rules {
-    ($find:expr, $replace:expr$(,)?) => {
-        Rules::Rule(Rule {
-            pattern: Pattern {
-                find: $find,
-                replace: $replace,
-                current: Rotation::None,
-            },
-            origin: ' ',
-            symmetry: vec![0, 1],
-        })
-    };
-    ($find:expr, $replace:expr$(, origin=$origin:expr)?$(, symmetry=$symmetry:expr)?$(,)?) => {
-        Rules::Rule(Rule {
-            pattern: Pattern {
-                find: $find,
-                replace: $replace,
-                current: Rotation::None,
-            },
-            origin: [$($origin,)? ' '][0].clone(),
-            symmetry: [$($symmetry,)? vec![0, 1]][0].clone(),
-        })
-    };
-}
-
-#[macro_export]
-macro_rules! rule {
-    ($find:expr, $replace:expr$(,)?) => {
-        Rule {
-            pattern: Pattern {
-                find: $find,
-                replace: $replace,
-                current: Rotation::None,
-            },
-            origin: ' ',
-            symmetry: vec![0, 1],
-        }
-    };
-    ($find:expr, $replace:expr$(, origin=$origin:expr)?$(, symmetry=$symmetry:expr)?$(,)?) => {
-        Rule {
-            pattern: Pattern {
-                find: $find,
-                replace: $replace,
-                current: Rotation::None,
-            },
-            origin: [$($origin,)? ' '][0].clone(),
-            symmetry: [$($symmetry,)? vec![0, 1]][0].clone(),
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! standard {
     ($($rule:expr),+ $(,)?) => {
         Rules::Standard(vec![
@@ -65,24 +13,6 @@ macro_rules! sequence {
         Rules::Sequence(vec![
             $( $rule, )*
         ], 0)
-    };
-}
-
-#[macro_export]
-macro_rules! one {
-    ($($rule:expr),+ $(,)?) => {
-        Rules::One(vec![
-            $( $rule, )*
-        ],)
-    };
-}
-
-#[macro_export]
-macro_rules! all {
-    ($($rule:expr),+ $(,)?) => {
-        Rules::All(vec![
-            $( $rule, )*
-        ], None)
     };
 }
 

@@ -1,10 +1,20 @@
+#![allow(unused_imports)]
 /// Reimplementation of MarkovJunior's logic in rust, following [notes](https://gist.github.com/dogles/a926ab890552cc7e45400a930398449d).
 use ndarray::prelude::*;
 use rand::prelude::*;
 use rand_chacha::ChaChaRng;
+use std::collections::HashSet;
 
-#[macro_use]
+pub use rule_macros::*;
+
 mod macros;
+pub use macros::*;
+
+pub struct RuleSet {
+    pub rules: Vec<Rules>,
+    pub dirty_indices: Vec<HashSet<Vec2>>,
+    pub positions: Vec<usize>,
+}
 
 /// Rules is a tree structure where different nodes perform different types of operations and/or
 /// influence which of their child nodes are executed at any point.
@@ -167,10 +177,10 @@ impl Grid {
         let original = pattern.clone();
         let mut results = Vec::new();
         let mut rotations = vec![Rotation::None];
-        if symmetry.contains(&0) {
+        if symmetry.contains(&4) || symmetry.contains(&0) {
             rotations.push(Rotation::Mirror);
         }
-        if symmetry.contains(&1) {
+        if symmetry.contains(&4) || symmetry.contains(&1) {
             rotations.push(Rotation::Clockwise);
             rotations.push(Rotation::Counter);
         }
