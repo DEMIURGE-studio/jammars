@@ -4,8 +4,6 @@ use ndarray::array;
 mod visualize;
 
 fn main() {
-    let (width, height) = visualize::get_term_size();
-    let mut grid = Grid::new(glam::uvec2(width, height), "BAC");
     let mut rules = sequence![
         one![;*B* > *A*],
         one![;BA > UU, ;AB > GG],
@@ -17,5 +15,5 @@ fn main() {
         all![B / U > B / B],
         all![*B* / BUB > *** / *B*],
     ];
-    visualize::runner(&mut grid, &mut rules);
+    visualize::runner(&mut rules);
 }
