@@ -25,13 +25,8 @@ pub fn runner(rules: &mut jammars::Rules) {
         for ((x, y), tile) in grid.tiles.indexed_iter() {
             if let Some(old) = temp.get((x, y)) {
                 if tile != old {
-                    #[cfg(feature = "colors")]
-                    {
-                        let [r, g, b] = jammars::alphabet_color(*tile);
-                        print!("\x1B[{};{}f\x1B[48;2;{};{};{}m ", y + 1, x + 1, r, g, b);
-                    }
-                    #[cfg(not(feature = "colors"))]
-                    print!("\x1B[{};{}f{}", y + 1, x + 1, tile);
+                    let [r, g, b] = jammars::alphabet_color(*tile);
+                    print!("\x1B[{};{}f\x1B[48;2;{};{};{}m ", y + 1, x + 1, r, g, b);
                 }
             }
         }

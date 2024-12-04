@@ -14,5 +14,4 @@ rand_chacha = "0.3"
 terminal_size = "0.4"
 
 [features]
-colors = []
 seeded = []
