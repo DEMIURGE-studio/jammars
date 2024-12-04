@@ -1,7 +1,11 @@
 [package]
 name = "macros"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
+license = "UNLICENSED"
+description = "Rust implementation/interpretation of MarkovJunior"
+repository = "https://github.com/DEMIURGE-studio/jammars"
+readme = "README.md"
 
 [lib]
 name = "rule_macros"
