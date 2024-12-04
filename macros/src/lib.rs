@@ -27,24 +27,19 @@ pub fn rule(input: TokenStream) -> TokenStream {
     let symmetry = if let Some((v, i)) = input.clone().split_once(';') {
         // Idea: allow multiple chars as origin, when setting origin, select random.
         input = i.to_string();
-        let mut res = vec![];
+        let mut res = 0u8;
         for c in v.to_uppercase().chars() {
             match c {
-                'X' => res.push(0usize),
-                'Y' => res.push(1usize),
-                'Z' => res.push(2usize),
+                'X' => res |= 0b1,
+                'Y' => res |= 0b10,
+                'Z' => res |= 0b100,
                 _ => {},
             }
         }
         res
     } else {
-        // Future proofing when 3D arrays are supported
-        // This should indicate default behavior
-        // All symmetry enabled by default
-        // Regardless of which dimension we are currently working in
-        vec![4usize]
+        0 | 0b1000
     };
-
     for c in input.to_uppercase().chars() {
         match c {
             'A'..'Z' | '0'..'9' | '*' => {
@@ -77,7 +72,7 @@ pub fn rule(input: TokenStream) -> TokenStream {
                 replace: array![#(#replace),*],
             },
             origin: #origin,
-            symmetry: vec![#(#symmetry),*],
+            symmetry: #symmetry,
         }
     };
     

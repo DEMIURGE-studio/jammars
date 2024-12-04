@@ -5,62 +5,43 @@ use jammars::*;
 
 mod performance;
 
-const WIDTH: usize = 212;
-const HEIGHT: usize = 52;
+const WIDTH: u32 = 212;
+const HEIGHT: u32 = 52;
 
 fn main() {
     let ups = performance::UpdatesCounter::new();
     let mut last = Instant::now();
-    let mut grid = Grid::new(Vec2 { x: WIDTH, y: HEIGHT }, "BWRUGE");
+    let mut grid = Grid::new(glam::uvec2(WIDTH, HEIGHT), "BAC");
     /*let mut rules = sequence![
-        repeat![5, one![
-            rule![array![['B']], array![['W']],],
-        ]],
-        repeat![5, one![
-            rule![array![['B']], array![['R']],],
-        ]],
-        one![
-            rule![array![['R', 'B']], array![['R', 'R']],],
-            rule![array![['W', 'B']], array![['W', 'W']],],
-        ],
-        all![
-            rule![array![['R', 'W']], array![['U', 'U']],],
-        ],
-        all![
-            rule![array![['W']], array![['B']],],
-            rule![array![['R']], array![['B']],],
-        ],
-        repeat![1, all![
-            rule![array![['U', 'B']], array![['U', 'U']],],
-        ]],
-        all![
-            rule![array![['B', 'U'], ['U', 'B']], array![['U', '*'], ['*', '*']],],
-        ],
-        all![
-            rule![array![['U', 'B']], array![['*', 'G']],],
-        ],
-        repeat![13, one![
-            rule![array![['B']], array![['E']],],
-        ]],
-        one![
-            rule![array![['E', 'B']], array![['*', 'E']],],
-            rule![array![['G', 'B']], array![['*', 'G']],],
-        ],
+        repeat![5, one![B > W]],
+        repeat![5, one![B > R]],
+        one![RB > RR, WB > WW],
+        all![RW > UU],
+        all![W > B, R > B],
+        repeat![1, all![UB > UU]],
+        all![BU / UB > U* / **],
+        all![UB > *G],
+        repeat![13, one![B > E]],
+        one![EB > *E, GB > *G],
     ];
-    let mut rules = standard![
-        one![rule![array![['R', 'B', 'B']], array![['R', 'B', 'R']], origin='R']],
-        one![rule![array![['R', 'B', 'R', 'B']], array![['R', 'A', 'R', 'B']]]],
-        one![rule![array![['R']], array![['A']]]],
-        one![rule![
-            array![['A', 'A', 'A'], ['A', 'B', 'A'], ['A', 'A', 'A']],
-            array![['A', 'A', 'A'], ['A', 'A', 'A'], ['A', 'A', 'A']],
-        ]],
+    let mut rules = sequence![
+        one![R:RBB > RBR],
+        one![RBRB > RURB],
+        one![R > U],
+        one![UUU / UBU / UUU > UUU / UUU / UUU],
+        one![R:RU > RR],
+        one![U > B],
     ];*/
-    let mut rules = standard![
-        one![R:RBB>RBR],
-        one![RBRB>RARB],
-        one![R>A],
-        one![AAA/ABA/AAA>AAA/AAA/AAA],
+    let mut rules = sequence![
+        one![;*B* > *A*],
+        one![;BA > UU, ;AB > GG],
+        one![;UA > UU, ;AG > GG],
+        one![U / G > B / B],
+        one![G > U],
+        one![BU / UB > BB / BB],
+        all![B / U > B / B],
+        all![B / U > B / B],
+        all![*B* / BUB > *** / *B*],
     ];
     print!("\x1B[2J");
     let mut temp = grid.tiles.clone();
@@ -87,7 +68,8 @@ fn main() {
         }
         temp = grid.tiles.clone();
     }
-    while rules.apply(&mut grid) {}
+    
+    /*while rules.apply(&mut grid) {}
     for ((x, y), tile) in grid.tiles.indexed_iter() {
         #[cfg(feature = "colors")]
         {
@@ -96,6 +78,6 @@ fn main() {
         }
         #[cfg(not(feature = "colors"))]
         print!("\x1B[{};{}f{}", y + 1, x + 1, tile);
-    }
+    }*/
     print!("\x1B[27;0fTook {:.2?}", ups.start.elapsed());
 }
