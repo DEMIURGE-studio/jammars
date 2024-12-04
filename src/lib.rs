@@ -31,7 +31,7 @@ pub enum Rules {
     /// Each step, it will find all rules that have at least one match on the grid, and apply a random match to apply.
     /// `One` will end if there are no rules left that have any matches.
     One(Vec<Rule>),
-    All(Vec<Rule>, Option<Vec<(usize, Match)>>),
+    All(Vec<Rule>, usize, usize),
     // I don't think I can implement the prl node in rust at this time.
 
     Standard(Vec<Rules>),
@@ -61,38 +61,46 @@ impl Rules {
                         matches.push((i, m));
                     }
                 }
-                if let Some((i, m)) = matches.choose(&mut grid.rng) {
-                    rules[*i].apply(grid, &mut vec![m.clone()])
-                } else {
+                if matches.is_empty() {
                     false
+                } else {
+                    let i = grid.rng.gen_range(0..matches.len());
+                    let choice = matches[i].clone();
+                    rules[choice.0].apply(grid, &mut vec![choice.1]);
+                    true
                 }
             },
-            Self::All(rules, matches) => {
-                if let None = matches {
-                    let mut temp = Vec::new();
-                    for (i, rule) in rules.iter_mut().enumerate() {
-                        if rule.origin != ' ' {
-                            grid.set_origin(rule.origin);
-                            rule.origin = ' ';
-                        }
-                        for m in grid.find(rule.pattern.clone(), rule.symmetry) {
-                            temp.push((i, m));
-                        }
+            Self::All(rules, index, count) => {
+                if let Some(rule) = rules.get_mut(*index) {
+                    if rule.origin != ' ' {
+                        grid.set_origin(rule.origin);
+                        rule.origin = ' ';
                     }
-                    if !temp.is_empty() {
-                        *matches = Some(temp);
+                    let mut matches = grid.find(rule.pattern.clone(), rule.symmetry);
+                    if matches.is_empty() {
+                        return if *index + 1 < rules.len() {
+                            *index += 1;
+                            true
+                        } else {
+                            false
+                        };
+                    } else {
+                        *count += matches.len();
                     }
-                }
-                if let Some(matching) = matches {
-                    if matching.is_empty() {
-                        return false;
+                    while !matches.is_empty() {
+                        let i = grid.rng.gen_range(0..matches.len());
+                        let choice = matches.remove(i);
+                        rules[*index].apply(grid, &mut vec![choice.clone()]);
                     }
-                    let i = grid.rng.gen_range(0..matching.len());
-                    let (i, choice) = matching.remove(i);
-                    rules[i].apply(grid, &mut vec![choice.clone()]);
+                    *index += 1;
                     true
                 } else {
-                    false
+                    if *count > 0 {
+                        *index = 0;
+                        true
+                    } else {
+                        false
+                    }
                 }
             },
             Self::Standard(rules) => {

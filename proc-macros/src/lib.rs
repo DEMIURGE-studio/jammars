@@ -113,7 +113,7 @@ pub fn all(input: TokenStream) -> TokenStream {
     let output = quote!{
         Rules::All(vec![
             #(#rules),*
-        ], None)
+        ], 0, 0)
     };
 
     TokenStream::from(output)
