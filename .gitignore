@@ -1,5 +1,5 @@
 /.vscode
 /target
 Cargo.lock
-macros/target
-macros/Cargo.lock
+proc-macros/target
+proc-macros/Cargo.lock
