@@ -1,4 +1,13 @@
 #[macro_export]
+macro_rules! rules {
+    ($rule:expr $(,)?) => {
+        Rules::Rule(
+            $rule,
+        )
+    };
+}
+
+#[macro_export]
 macro_rules! standard {
     ($($rule:expr),+ $(,)?) => {
         Rules::Standard(vec![

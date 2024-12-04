@@ -8,12 +8,18 @@ fn main() {
         one![;*B* > *A*],
         one![;BA > UU, ;AB > GG],
         one![;UA > UU, ;AG > GG],
-        one![U / G > B / B],
+        one![U / G > A / A],
         one![G > U],
-        one![BU / UB > BB / BB],
-        all![B / U > B / B],
-        all![B / U > B / B],
-        all![*B* / BUB > *** / *B*],
+        one![AU / UA > AA / AA],
+        all![A / U > A / A],
+        all![A / U > A / A],
+        all![A / U > A / A],
+        all![*A* / AUA > *** / *A*],
+        one![;A / * > B / *],
+        standard![
+            rules![rule![;UUAUU > BBRBB]],
+            rules![rule![x;UA > UU]],
+        ],
     ];
     visualize::runner(&mut rules);
 }
