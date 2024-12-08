@@ -4,7 +4,7 @@ use ndarray::array;
 mod visualize;
 
 fn main() {
-    let mut rules = standard![
+    let mut rules = markov![
         one![R:RBB > GGR],
         one![RGG > WWR],
     ];

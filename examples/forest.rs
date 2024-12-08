@@ -9,7 +9,7 @@ fn main() {
         all![*I* / IBI > *** / *I*],
         all![*B* / BIB / *B* > *** / *W* / ***],
         repeat![2, one![I > E]],
-        standard![
+        markov![
             all![EI > *E],
             one![EBI / EBI > **E / **E],
         ],

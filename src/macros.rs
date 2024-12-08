@@ -8,9 +8,9 @@ macro_rules! rules {
 }
 
 #[macro_export]
-macro_rules! standard {
+macro_rules! markov {
     ($($rule:expr),+ $(,)?) => {
-        Rules::Standard(vec![
+        Rules::Markov(vec![
             $( $rule, )*
         ])
     };
@@ -28,7 +28,7 @@ macro_rules! sequence {
 #[macro_export]
 macro_rules! repeat {
     ($limit:expr, $rule:expr $(,)?) => {
-        Rules::Repeat($limit, Box::new($rule))
+        Rules::Repeat($limit, $limit, Box::new($rule))
     };
 }
 

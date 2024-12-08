@@ -16,7 +16,7 @@ fn main() {
         all![A / U > A / A],
         all![*A* / AUA > *** / *A*],
         one![;A / * > B / *],
-        standard![
+        markov![
             rules![rule![;UUAUU > BBRBB]],
             rules![rule![x;UA > UU]],
         ],

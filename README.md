@@ -1,2 +1,2 @@
 # Jammars
-Inspired by Markov Junior, maybe
+Inspired by Markov Junior, with plans to deviate behaviors based on how we believe we want/need the implementation to do things. Documentation is a work in progress, but there are already some neat examples like the wilson model. All feedback is greatly appreciated as this is our first time attempting to make a crate.

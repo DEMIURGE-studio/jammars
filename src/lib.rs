@@ -3,25 +3,19 @@ use glam::{uvec2, UVec2};
 use ndarray::prelude::*;
 use rand::prelude::*;
 use rand_chacha::ChaChaRng;
-use std::collections::HashSet;
+//use std::collections::HashSet;
 
 pub use rule_macros::*;
 
 #[macro_use]
 mod macros;
 
-pub struct RuleSet {
-    pub rules: Vec<Rules>,
-    pub dirty_indices: Vec<HashSet<UVec2>>,
-    pub positions: Vec<usize>,
-}
-
 /// Rules is a tree structure where different nodes perform different types of operations and/or
 /// influence which of their child nodes are executed at any point.
 /// 
 /// Each step asks the currently executing node to apply it's transformation, or
 /// return false if the node has more work to do.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Rules {
     /// Rewrite rule
     Rule(Rule),
@@ -34,9 +28,9 @@ pub enum Rules {
     All(Vec<Rule>, usize, usize),
     // I don't think I can implement the prl node in rust at this time.
 
-    Standard(Vec<Rules>),
+    Markov(Vec<Rules>),
     Sequence(Vec<Rules>, usize),
-    Repeat(usize, Box<Rules>),
+    Repeat(usize, usize, Box<Rules>),
 
     // TODO: start, end, path
     //Path(char, char, char),
@@ -49,7 +43,7 @@ impl Rules {
                 let mut matches = grid.find(rule.pattern.clone(), rule.symmetry);
                 rule.apply(grid, &mut matches)
             },
-            Self::Custom(_rule) => _rule(grid),
+            Self::Custom(rule) => rule(grid),
             Self::One(rules) => {
                 let mut matches = Vec::new();
                 for (i, rule) in rules.iter_mut().enumerate() {
@@ -103,7 +97,7 @@ impl Rules {
                     }
                 }
             },
-            Self::Standard(rules) => {
+            Self::Markov(rules) => {
                 for rule in rules {
                     if rule.apply(grid) {
                         return true;
@@ -122,23 +116,26 @@ impl Rules {
                 }
                 true
             },
-            Self::Repeat(repeat, rules) => {
+            Self::Repeat(repeat, original, rules) => {
                 if *repeat > 0 {
                     if rules.apply(grid) {
                         *repeat -= 1;
                         true
                     } else {
+                        *repeat = *original;
                         false
                     }
                 } else {
-                    false
+                    rules.apply(grid);
+                    *repeat = *original;
+                    return false;
                 }
             },
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Rule {
     pub pattern: Pattern,
     pub origin: char,
@@ -163,6 +160,7 @@ impl Rule {
     }
 }
 
+#[derive(Debug)]
 pub struct Grid {
     pub alphabet: Vec<char>,
     pub size: UVec2,
