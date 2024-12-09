@@ -11,7 +11,7 @@ pub fn runner(rules: &mut jammars::Rules) {
     };
     let ups = performance::UpdatesCounter::new();
     let mut last = Instant::now();
-    let mut grid = jammars::Grid::new(glam::uvec2(width, height), "B");
+    let mut grid = jammars::Grid::new(width, height, "B");
     print!("\x1B[?47h\x1B[?25l\x1B[2J");
     let mut temp = grid.tiles.clone();
     loop {

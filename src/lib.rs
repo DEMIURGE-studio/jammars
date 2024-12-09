@@ -169,12 +169,13 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn new(size: UVec2, alphabet: &str) -> Self {
+    pub fn new(width: u32, height: u32, alphabet: &str) -> Self {
         let alphabet: Vec<char> = alphabet.to_uppercase().chars().collect();
         let start = alphabet[0];
         Self {
-            alphabet, size,
-            tiles: Array2::from_elem((size.x as usize, size.y as usize), start),
+            alphabet,
+            size: uvec2(width, height),
+            tiles: Array2::from_elem((width as usize, height as usize), start),
             rng: ChaChaRng::from_entropy(),
         }
     }
