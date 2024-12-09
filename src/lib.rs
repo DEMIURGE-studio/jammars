@@ -24,7 +24,7 @@
 use glam::{uvec2, UVec2};
 use ndarray::prelude::*;
 use rand::prelude::*;
-use rand_chacha::ChaChaRng;
+use wyrand::WyRand;
 //use std::collections::HashSet;
 
 pub use rule_macros::*;
@@ -187,7 +187,7 @@ pub struct Grid {
     pub alphabet: Vec<char>,
     pub size: UVec2,
     pub tiles: Array2<char>,
-    pub rng: ChaChaRng,
+    pub rng: WyRand,
 }
 
 impl Grid {
@@ -198,7 +198,7 @@ impl Grid {
             alphabet,
             size: uvec2(width, height),
             tiles: Array2::from_elem((width as usize, height as usize), start),
-            rng: ChaChaRng::from_entropy(),
+            rng: WyRand::from_entropy(),
         }
     }
 
