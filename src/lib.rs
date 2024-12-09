@@ -1,4 +1,26 @@
-/// Reimplementation of MarkovJunior's logic in rust, following [notes](https://gist.github.com/dogles/a926ab890552cc7e45400a930398449d).
+//! This crate is a reimplementation of logic used by [Markov Junior].
+//! 
+//! The logic that has been implemented has mostly been done following the [technical notes] linked in [Markov Junior]'s README.
+//! So far, the One, All, Markov and Sequence nodes should be working as expected, there are plans to implement the other nodes in the future.
+//! 
+//! # Example
+//! ```
+//! use jammars::*;
+//! use ndarray::array;
+//! 
+//! let mut count = 0;
+//! let mut grid = Grid::new(100, 100, "BWA");
+//! let mut rules = one![W:WBB > WAW];
+//! while rules.apply(&mut grid) {
+//!     count += 1;
+//! }
+//! 
+//! println!("Rules finished after {}", count);
+//! ```
+//! 
+//! [Markov Junior]: https://github.com/mxgmn/MarkovJunior
+//! [technical notes]: https://gist.github.com/dogles/a926ab890552cc7e45400a930398449d
+
 use glam::{uvec2, UVec2};
 use ndarray::prelude::*;
 use rand::prelude::*;
@@ -30,7 +52,7 @@ pub enum Rules {
 
     Markov(Vec<Rules>),
     Sequence(Vec<Rules>, usize),
-    Repeat(usize, usize, Box<Rules>),
+    Steps(usize, usize, Box<Rules>),
 
     // TODO: start, end, path
     //Path(char, char, char),
@@ -116,7 +138,7 @@ impl Rules {
                 }
                 true
             },
-            Self::Repeat(repeat, original, rules) => {
+            Self::Steps(repeat, original, rules) => {
                 if *repeat > 0 {
                     if rules.apply(grid) {
                         *repeat -= 1;

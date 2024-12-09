@@ -1,4 +1,3 @@
-use std::time::{Duration, Instant};
 use terminal_size::{Width, Height, terminal_size};
 
 pub mod performance;
@@ -10,17 +9,13 @@ pub fn runner(rules: &mut jammars::Rules) {
         (100, 100)
     };
     let ups = performance::UpdatesCounter::new();
-    let mut last = Instant::now();
     let mut grid = jammars::Grid::new(width, height, "B");
     print!("\x1B[?47h\x1B[?25l\x1B[2J");
     let mut temp = grid.tiles.clone();
     loop {
-        if last.elapsed() >= Duration::from_millis(1) {
-            print!("\x1B[0m\x1B[{};0f{} Updates Per Second\x1B[H", height - 2, ups.update());
-            last = Instant::now();
-            if !rules.apply(&mut grid) {
-                break;
-            }
+        print!("\x1B[0m\x1B[{};0f{} Updates Per Second\x1B[H", height - 2, ups.update());
+        if !rules.apply(&mut grid) {
+            break;
         }
         for ((x, y), tile) in grid.tiles.indexed_iter() {
             if let Some(old) = temp.get((x, y)) {

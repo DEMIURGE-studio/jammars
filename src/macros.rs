@@ -26,9 +26,9 @@ macro_rules! sequence {
 }
 
 #[macro_export]
-macro_rules! repeat {
+macro_rules! steps {
     ($limit:expr, $rule:expr $(,)?) => {
-        Rules::Repeat($limit, $limit, Box::new($rule))
+        Rules::Steps($limit, $limit, Box::new($rule))
     };
 }
 

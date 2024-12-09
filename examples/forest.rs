@@ -8,7 +8,7 @@ fn main() {
         one![BB* / BBB / *B* > *** / *I* / ***],
         all![*I* / IBI > *** / *I*],
         all![*B* / BIB / *B* > *** / *W* / ***],
-        repeat![2, one![I > E]],
+        steps![2, one![I > E]],
         markov![
             all![EI > *E],
             one![EBI / EBI > **E / **E],
