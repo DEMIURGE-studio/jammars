@@ -61,11 +61,14 @@ pub enum Rules {
 impl Rules {
     pub fn apply(&mut self, grid: &mut Grid) -> bool {
         match self {
+            // Applies single rule
             Self::Rule(rule) => {
                 let mut matches = grid.find(rule.pattern.clone(), rule.symmetry);
                 rule.apply(grid, &mut matches)
             },
+            // Runs a custom function as a rule
             Self::Custom(rule) => rule(grid),
+            // Finds all matches for every rule and applies one at random each step
             Self::One(rules) => {
                 let mut matches = Vec::new();
                 for (i, rule) in rules.iter_mut().enumerate() {
@@ -86,6 +89,7 @@ impl Rules {
                     true
                 }
             },
+            // Applies all matches of each rule, one at a time, in order, in a single step
             Self::All(rules, index, count) => {
                 if let Some(rule) = rules.get_mut(*index) {
                     if rule.origin != ' ' {
@@ -119,6 +123,7 @@ impl Rules {
                     }
                 }
             },
+            // Attempts to apply each rule in order. Stops only when all rules cannot be applied
             Self::Markov(rules) => {
                 for rule in rules {
                     if rule.apply(grid) {
@@ -127,6 +132,7 @@ impl Rules {
                 }
                 false
             },
+            // Applies a rule until it can't be applied anymore, then moves on to the next rule
             Self::Sequence(rules, index) => {
                 if !rules[*index].apply(grid) {
                     if *index < rules.len() - 1 {
@@ -138,6 +144,7 @@ impl Rules {
                 }
                 true
             },
+            // Sets a limit of steps for any node
             Self::Steps(repeat, original, rules) => {
                 if *repeat > 0 {
                     if rules.apply(grid) {
@@ -157,6 +164,7 @@ impl Rules {
     }
 }
 
+/// The core of all logic
 #[derive(Clone, Debug)]
 pub struct Rule {
     pub pattern: Pattern,
@@ -165,6 +173,7 @@ pub struct Rule {
 }
 
 impl Rule {
+    /// Apply a single match to the Grid
     pub fn apply(&mut self, grid: &mut Grid, matches: &mut Vec<Match>) -> bool {
         if !matches.is_empty() {
             let i = grid.rng.gen_range(0..matches.len());
@@ -202,6 +211,7 @@ impl Grid {
         }
     }
 
+    /// Finds all instances of a given Pattern along the provided symmetries stored within the bits of a u8
     pub fn find(&self, mut pattern: Pattern, symmetry: u8) -> Vec<Match> {
         let original = pattern.clone();
         let mut results = Vec::new();
@@ -238,6 +248,7 @@ impl Grid {
             for x in 0..self.size.x {
                 for rotation in &rotations {
                     pattern.rotate(*rotation);
+                    // Check if the pattern is the same as the original, in which case, we don't want duplicate matches.
                     if *rotation != Rotation::None {
                         if pattern.find == original.find {
                             continue;
@@ -255,6 +266,7 @@ impl Grid {
         results
     }
 
+    /// Checks if a provided Pattern fits at the given coordinates
     pub fn fits(&self, pos: UVec2, pattern: &Pattern) -> bool {
         let mut matching = true;
         for ((y, x), &find) in pattern.find.indexed_iter() {
@@ -305,6 +317,7 @@ pub struct Match {
     pub pos: UVec2,
 }
 
+/// Rotations of a Pattern
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Rotation {
     Clockwise, // 90
@@ -313,12 +326,7 @@ pub enum Rotation {
     None, // 0
 }
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-pub struct Char {
-    pub cell: char,
-    pub rgb: [u8; 3],
-}
-
+/// The arrays of chars to find matches and apply replacements.
 #[derive(Clone, Debug)]
 pub struct Pattern {
     pub current: Rotation,
@@ -327,6 +335,7 @@ pub struct Pattern {
 }
 
 impl Pattern {
+    /// Applies a rotation based on the current rotation
     pub fn rotate(&mut self, rotation: Rotation) {
         use Rotation::*;
         self._rotate(match (self.current, rotation) {
@@ -345,6 +354,7 @@ impl Pattern {
         self.current = rotation;
     }
 
+    /// Applies the provided rotation directly
     fn _rotate(&mut self, rotation: Rotation) {
         match rotation {
             Rotation::Clockwise => {
