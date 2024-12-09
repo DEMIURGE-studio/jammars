@@ -11,13 +11,11 @@ fn main() {
         one![U / G > A / A],
         one![G > U],
         one![AU / UA > AA / AA],
-        all![A / U > A / A],
-        all![A / U > A / A],
-        all![A / U > A / A],
+        repeat![2, all![A / U > A / A]],
         all![*A* / AUA > *** / *A*],
         one![;A / * > B / *],
         markov![
-            rules![rule![;UUAUU > BBRBB]],
+            repeat![1, rules![rule![;UUAUU > BBRBB]]],
             rules![rule![x;UA > UU]],
         ],
     ];
