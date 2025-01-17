@@ -4,9 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-glam = "0.29"
 macros = { path = "./proc-macros" }
-ndarray = "0.16"
 rand = "0.8"
 wyrand = "0.2"
 

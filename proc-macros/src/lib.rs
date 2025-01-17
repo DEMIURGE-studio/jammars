@@ -40,6 +40,7 @@ pub fn rule(input: TokenStream) -> TokenStream {
     } else {
         0 | 0b1000
     };
+
     for c in input.to_uppercase().chars() {
         match c {
             'A'..'Z' | '0'..'9' | '*' => {
@@ -68,8 +69,8 @@ pub fn rule(input: TokenStream) -> TokenStream {
         Rule {
             pattern: Pattern {
                 current: jammars::Rotation::None,
-                find: array![#(#find),*],
-                replace: array![#(#replace),*],
+                find: Grammar::new(&[#(&#find),*]),
+                replace: Grammar::new(&[#(&#replace),*]),
             },
             origin: #origin,
             symmetry: #symmetry,

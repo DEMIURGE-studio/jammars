@@ -6,7 +6,6 @@
 //! # Example
 //! ```
 //! use jammars::*;
-//! use ndarray::array;
 //! 
 //! let mut count = 0;
 //! let mut grid = Grid::new(100, 100, "BWA");
@@ -15,17 +14,14 @@
 //!     count += 1;
 //! }
 //! 
-//! println!("Rules finished after {}", count);
+//! println!("Rules finished after {} steps", count);
 //! ```
 //! 
 //! [Markov Junior]: https://github.com/mxgmn/MarkovJunior
 //! [technical notes]: https://gist.github.com/dogles/a926ab890552cc7e45400a930398449d
 
-use glam::{uvec2, UVec2};
-use ndarray::prelude::*;
 use rand::prelude::*;
-use wyrand::WyRand;
-//use std::collections::HashSet;
+use std::cell::Cell;
 
 pub use rule_macros::*;
 
@@ -41,7 +37,6 @@ mod macros;
 pub enum Rules {
     /// Rewrite rule
     Rule(Rule),
-    Custom(fn(grid: &mut Grid) -> bool),
 
     /// `One`` takes a set of rewrite rules.
     /// Each step, it will find all rules that have at least one match on the grid, and apply a random match to apply.
@@ -59,15 +54,13 @@ pub enum Rules {
 }
 
 impl Rules {
-    pub fn apply(&mut self, grid: &mut Grid) -> bool {
+    pub fn apply<G: Grid, R: RngCore>(&mut self, grid: &mut G, rng: &mut R) -> bool {
         match self {
             // Applies single rule
             Self::Rule(rule) => {
-                let mut matches = grid.find(rule.pattern.clone(), rule.symmetry);
-                rule.apply(grid, &mut matches)
+                let mut matches = grid.find_matches(&rule.pattern, rule.symmetry);
+                rule.apply(grid, rng, &mut matches)
             },
-            // Runs a custom function as a rule
-            Self::Custom(rule) => rule(grid),
             // Finds all matches for every rule and applies one at random each step
             Self::One(rules) => {
                 let mut matches = Vec::new();
@@ -76,16 +69,16 @@ impl Rules {
                         grid.set_origin(rule.origin);
                         rule.origin = ' ';
                     }
-                    for m in grid.find(rule.pattern.clone(), rule.symmetry) {
+                    for m in grid.find_matches(&rule.pattern, rule.symmetry) {
                         matches.push((i, m));
                     }
                 }
                 if matches.is_empty() {
                     false
                 } else {
-                    let i = grid.rng.gen_range(0..matches.len());
+                    let i = rng.gen_range(0..matches.len());
                     let choice = matches[i].clone();
-                    rules[choice.0].apply(grid, &mut vec![choice.1]);
+                    rules[choice.0].apply(grid, rng, &mut vec![choice.1]);
                     true
                 }
             },
@@ -96,7 +89,7 @@ impl Rules {
                         grid.set_origin(rule.origin);
                         rule.origin = ' ';
                     }
-                    let mut matches = grid.find(rule.pattern.clone(), rule.symmetry);
+                    let mut matches = grid.find_matches(&rule.pattern, rule.symmetry);
                     if matches.is_empty() {
                         return if *index + 1 < rules.len() {
                             *index += 1;
@@ -108,9 +101,9 @@ impl Rules {
                         *count += matches.len();
                     }
                     while !matches.is_empty() {
-                        let i = grid.rng.gen_range(0..matches.len());
+                        let i = rng.gen_range(0..matches.len());
                         let choice = matches.remove(i);
-                        rules[*index].apply(grid, &mut vec![choice.clone()]);
+                        rules[*index].apply(grid, rng, &mut vec![choice.clone()]);
                     }
                     *index += 1;
                     true
@@ -126,7 +119,7 @@ impl Rules {
             // Attempts to apply each rule in order. Stops only when all rules cannot be applied
             Self::Markov(rules) => {
                 for rule in rules {
-                    if rule.apply(grid) {
+                    if rule.apply(grid, rng) {
                         return true;
                     }
                 }
@@ -134,7 +127,7 @@ impl Rules {
             },
             // Applies a rule until it can't be applied anymore, then moves on to the next rule
             Self::Sequence(rules, index) => {
-                if !rules[*index].apply(grid) {
+                if !rules[*index].apply(grid, rng) {
                     if *index < rules.len() - 1 {
                         *index += 1;
                         return true;
@@ -147,7 +140,7 @@ impl Rules {
             // Sets a limit of steps for any node
             Self::Steps(repeat, original, rules) => {
                 if *repeat > 0 {
-                    if rules.apply(grid) {
+                    if rules.apply(grid, rng) {
                         *repeat -= 1;
                         true
                     } else {
@@ -155,7 +148,7 @@ impl Rules {
                         false
                     }
                 } else {
-                    rules.apply(grid);
+                    rules.apply(grid, rng);
                     *repeat = *original;
                     return false;
                 }
@@ -174,13 +167,13 @@ pub struct Rule {
 
 impl Rule {
     /// Apply a single match to the Grid
-    pub fn apply(&mut self, grid: &mut Grid, matches: &mut Vec<Match>) -> bool {
+    pub fn apply<G: Grid, R: RngCore>(&mut self, grid: &mut G, rng: &mut R, matches: &mut Vec<Match>) -> bool {
         if !matches.is_empty() {
-            let i = grid.rng.gen_range(0..matches.len());
+            let i = rng.gen_range(0..matches.len());
             let choice = matches.remove(i);
             //self.pattern.rotate(choice.rot);
-            if grid.fits(choice.pos, &choice.pattern) {
-                grid.replace(choice.pos, &choice.pattern);
+            if grid.check_pattern(choice.x, choice.y, &choice.pattern) {
+                grid.replace_pattern(choice.x, choice.y, &choice.pattern);
                 true
             } else {
                 false
@@ -191,39 +184,36 @@ impl Rule {
     }
 }
 
-#[derive(Debug)]
-pub struct Grid {
-    pub alphabet: Vec<char>,
-    pub size: UVec2,
-    pub tiles: Array2<char>,
-    pub rng: WyRand,
+pub enum Symmetry {
+    X, Y, Z, W,
 }
 
-impl Grid {
-    pub fn new(width: u32, height: u32, alphabet: &str) -> Self {
-        let alphabet: Vec<char> = alphabet.to_uppercase().chars().collect();
-        let start = alphabet[0];
-        Self {
-            alphabet,
-            size: uvec2(width, height),
-            tiles: Array2::from_elem((width as usize, height as usize), start),
-            rng: WyRand::from_entropy(),
+/// Trait interface to grids
+pub trait Grid {
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
+    //fn symmetry(&self) -> &[Symmetry];
+    fn get(&self, x: usize, y: usize) -> Option<char>;
+    fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char>;
+
+    fn set_origin(&mut self, origin: char) {
+        if let Some(tile) = self.get_mut(self.width() / 2, self.height() / 2) {
+            *tile = origin;
         }
     }
 
-    /// Finds all instances of a given Pattern along the provided symmetries stored within the bits of a u8
-    pub fn find(&self, mut pattern: Pattern, symmetry: u8) -> Vec<Match> {
-        let original = pattern.clone();
+    fn find_matches(&self, pattern: &Pattern, symmetry: u8) -> Vec<Match> {
+        let mut temp = pattern.clone();
         let mut results = Vec::new();
-        let mut rotations = vec![];
-        // Default symmetry
+        let mut rotations = Vec::new();
+        // Check if symmetry is default
         if symmetry & 0b1000 != 0 {
-            rotations.extend_from_slice(&[
+            rotations = vec![
                 Rotation::None,
                 Rotation::Clockwise,
                 Rotation::Mirror,
                 Rotation::Counter,
-            ]);
+            ];
         } else {
             // Axis 1, innermost axis, presumably x?
             if symmetry & 0b1 != 0 {
@@ -241,23 +231,22 @@ impl Grid {
             }
         }
         if rotations.is_empty() {
-            // At least set to check for no rotations...
-            rotations.push(Rotation::None);
+            rotations = vec![Rotation::None];
         }
-        for y in 0..self.size.y {
-            for x in 0..self.size.x {
+        for y in 0..self.height() {
+            for x in 0..self.width() {
                 for rotation in &rotations {
-                    pattern.rotate(*rotation);
+                    temp.rotate(*rotation);
                     // Check if the pattern is the same as the original, in which case, we don't want duplicate matches.
                     if *rotation != Rotation::None {
-                        if pattern.find == original.find {
+                        if temp.find.array == pattern.find.array {
                             continue;
                         }
                     }
-                    if self.fits(uvec2(x, y), &pattern) {
+                    if self.check_pattern(x, y, &pattern) {
                         results.push(Match {
                             pattern: pattern.clone(),
-                            pos: uvec2(x, y),
+                            x, y,
                         });
                     }
                 }
@@ -267,44 +256,111 @@ impl Grid {
     }
 
     /// Checks if a provided Pattern fits at the given coordinates
-    pub fn fits(&self, pos: UVec2, pattern: &Pattern) -> bool {
-        let mut matching = true;
-        for ((y, x), &find) in pattern.find.indexed_iter() {
-            if let Some(&tile) = self.get(pos.x as usize + x, pos.y as usize + y) {
+    fn check_pattern(&self, x: usize, y: usize, pattern: &Pattern) -> bool {
+        for tx in 0..pattern.find.width() {
+            for ty in 0..pattern.find.height() {
+                let Some(find) = pattern.find.get(tx, ty) else {
+                    return false;
+                };
+                let Some(tile) = self.get(x + tx, y + ty) else {
+                    return false;
+                };
                 if tile != find && !(tile == '*' || find == '*') {
-                    matching = false;
-                    break;
-                }
-            } else {
-                matching = false;
-                break;
-            }
-        }
-        matching
-    }
-
-    pub fn replace(&mut self, pos: UVec2, pattern: &Pattern) {
-        for ((y, x), &replace) in pattern.replace.indexed_iter() {
-            if let Some(tile) = self.get_mut(pos.x as usize + x, pos.y as usize + y) {
-                if replace != '*' {
-                    *tile = replace;
+                    return false;
                 }
             }
         }
+        true
     }
 
-    pub fn get(&self, x: usize, y: usize) -> Option<&char> {
-        self.tiles.get((x, y))
-    }
-
-    pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char> {
-        self.tiles.get_mut((x, y))
-    }
-
-    pub fn set_origin(&mut self, origin: char) {
-        if let Some(tile) = self.get_mut(self.size.x as usize / 2, self.size.y as usize / 2) {
-            *tile = origin;
+    fn replace_pattern(&mut self, x: usize, y: usize, pattern: &Pattern) {
+        for tx in 0..pattern.replace.width() {
+            for ty in 0..pattern.replace.height() {
+                let Some(replace) = pattern.replace.get(tx, ty) else {
+                    return;
+                };
+                if let Some(tile) = self.get_mut(x + tx, y + ty) {
+                    if replace != '*' {
+                        *tile = replace;
+                    }
+                }
+            }
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Grammar {
+    axes: [Cell<bool>; 2],
+    pub array: Vec<Vec<char>>,
+}
+
+impl Grammar {
+    pub fn new(array: &[&[char]]) -> Self {
+        let mut vec = vec![];
+        for l in array {
+            vec.push(l.to_vec());
+        }
+        Self {
+            axes: [Cell::new(false), Cell::new(false)],
+            array: vec,
+        }
+    }
+
+    fn invert_axis(&self, i: usize) {
+        let v = self.axes[i].get();
+        self.axes[i].replace(!v);
+    }
+
+    fn swap_axes(&self) {
+        for axis in self.axes.iter() {
+            let v = axis.get();
+            axis.replace(!v);
+        }
+    }
+}
+
+impl Grid for Grammar {
+    fn width(&self) -> usize {
+        self.array[0].len()
+    }
+
+    fn height(&self) -> usize {
+        self.array.len()
+    }
+
+    fn get(&self, x: usize, y: usize) -> Option<char> {
+        let x = if self.axes[0].get() {
+            self.width() - x
+        } else {
+            x
+        };
+        let y = if self.axes[1].get() {
+            self.height() - y
+        } else {
+            y
+        };
+        let Some(outer) = self.array.get(y) else {
+            return None;
+        };
+        outer.get(x).copied()
+    }
+
+    fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char> {
+        let x = if self.axes[0].get() {
+            self.width() - x
+        } else {
+            x
+        };
+        let y = if self.axes[1].get() {
+            self.height() - y
+        } else {
+            y
+        };
+        let Some(outer) = self.array.get_mut(y) else {
+            return None;
+        };
+        outer.get_mut(x)
     }
 }
 
@@ -314,7 +370,8 @@ pub struct Match {
     /// The Rule which this is a match for
     pub pattern: Pattern,
     /// The position of the top left corner of match
-    pub pos: UVec2,
+    pub x: usize,
+    pub y: usize,
 }
 
 /// Rotations of a Pattern
@@ -330,8 +387,8 @@ pub enum Rotation {
 #[derive(Clone, Debug)]
 pub struct Pattern {
     pub current: Rotation,
-    pub find: Array2<char>,
-    pub replace: Array2<char>,
+    pub find: Grammar,
+    pub replace: Grammar,
 }
 
 impl Pattern {
@@ -358,22 +415,22 @@ impl Pattern {
     fn _rotate(&mut self, rotation: Rotation) {
         match rotation {
             Rotation::Clockwise => {
-                self.find.swap_axes(0, 1);
-                self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(1));
-                self.replace.invert_axis(Axis(1));
+                self.find.swap_axes();
+                self.replace.swap_axes();
+                self.find.invert_axis(1);
+                self.replace.invert_axis(1);
             },
             Rotation::Counter => {
-                self.find.swap_axes(0, 1);
-                self.replace.swap_axes(0, 1);
-                self.find.invert_axis(Axis(0));
-                self.replace.invert_axis(Axis(0));
+                self.find.swap_axes();
+                self.replace.swap_axes();
+                self.find.invert_axis(0);
+                self.replace.invert_axis(0);
             },
             Rotation::Mirror => {
-                self.find.invert_axis(Axis(1));
-                self.replace.invert_axis(Axis(1));
-                self.find.invert_axis(Axis(0));
-                self.replace.invert_axis(Axis(0));
+                self.find.invert_axis(1);
+                self.replace.invert_axis(1);
+                self.find.invert_axis(0);
+                self.replace.invert_axis(0);
             },
             Rotation::None => {},
         }

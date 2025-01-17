@@ -1,5 +1,4 @@
 use jammars::*;
-use ndarray::array;
 
 mod visualize;
 
