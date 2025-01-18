@@ -292,6 +292,7 @@ pub trait Grid {
 #[derive(Clone, Debug)]
 pub struct Grammar {
     axes: [Cell<bool>; 2],
+    swapped: Cell<bool>,
     pub array: Vec<Vec<char>>,
 }
 
@@ -303,6 +304,7 @@ impl Grammar {
         }
         Self {
             axes: [Cell::new(false), Cell::new(false)],
+            swapped: Cell::new(false),
             array: vec,
         }
     }
@@ -313,54 +315,59 @@ impl Grammar {
     }
 
     fn swap_axes(&self) {
-        for axis in self.axes.iter() {
-            let v = axis.get();
-            axis.replace(!v);
-        }
+        self.swapped.replace(!self.swapped.get());
     }
 }
 
 impl Grid for Grammar {
     fn width(&self) -> usize {
-        self.array[0].len()
+        if self.swapped.get() {
+            self.array.len()
+        } else {
+            self.array[0].len()
+        }
     }
 
     fn height(&self) -> usize {
-        self.array.len()
+        if self.swapped.get() {
+            self.array[0].len()
+        } else {
+            self.array.len()
+        }
     }
 
     fn get(&self, x: usize, y: usize) -> Option<char> {
-        let x = if self.axes[0].get() {
-            self.width() - x
+        let x = if self.axes[if self.swapped.get() { 1 } else { 0 }].get() {
+            self.width() - x - 1
         } else {
             x
         };
-        let y = if self.axes[1].get() {
-            self.height() - y
+        let y = if self.axes[if self.swapped.get() { 0 } else { 1 }].get() {
+            self.height() - y - 1
         } else {
             y
         };
-        let Some(outer) = self.array.get(y) else {
+        let Some(outer) = self.array.get(if self.swapped.get() { x } else { y }) else {
             return None;
         };
-        outer.get(x).copied()
+        outer.get(if self.swapped.get() { y } else { x }).copied()
     }
 
     fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char> {
-        let x = if self.axes[0].get() {
-            self.width() - x
-        } else {
-            x
-        };
-        let y = if self.axes[1].get() {
-            self.height() - y
+        let y = if self.axes[if self.swapped.get() { 1 } else { 0 }].get() {
+            self.height() - y - 1
         } else {
             y
         };
-        let Some(outer) = self.array.get_mut(y) else {
+        let x = if self.axes[if self.swapped.get() { 0 } else { 1 }].get() {
+            self.width() - x - 1
+        } else {
+            x
+        };
+        let Some(outer) = self.array.get_mut(if self.swapped.get() { y } else { x }) else {
             return None;
         };
-        outer.get_mut(x)
+        outer.get_mut(if self.swapped.get() { x } else { y })
     }
 }
 
