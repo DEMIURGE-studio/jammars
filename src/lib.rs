@@ -203,11 +203,12 @@ pub trait Grid {
     }
 
     fn find_matches(&self, pattern: &Pattern, symmetry: u8) -> Vec<Match> {
-        let mut temp = pattern.clone();
         let mut results = Vec::new();
+        
+        // Figure out which rotations we want to check based on symmetry bits
         let mut rotations = Vec::new();
-        // Check if symmetry is default
         if symmetry & 0b1000 != 0 {
+            // 8-way symmetry
             rotations = vec![
                 Rotation::None,
                 Rotation::Clockwise,
@@ -215,43 +216,39 @@ pub trait Grid {
                 Rotation::Counter,
             ];
         } else {
-            // Axis 1, innermost axis, presumably x?
+            // Some combination of axes
             if symmetry & 0b1 != 0 {
                 rotations.push(Rotation::None);
                 rotations.push(Rotation::Mirror);
             }
-            // Axis 0, outermost axis, presumably y?
             if symmetry & 0b10 != 0 {
                 rotations.push(Rotation::Clockwise);
                 rotations.push(Rotation::Counter);
             }
-            // Axis 3, nonexistent axis, future proofing 3d grammars
-            if symmetry & 0b100 != 0 {
-                todo!()
-            }
+            // If symmetry & 0b100 != 0 => handle 3D logic, etc.
         }
         if rotations.is_empty() {
-            rotations = vec![Rotation::None];
+            rotations.push(Rotation::None);
         }
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                for rotation in &rotations {
-                    temp.rotate(*rotation);
-                    // Check if the pattern is the same as the original, in which case, we don't want duplicate matches.
-                    /*if *rotation != Rotation::None {
-                        if temp.find.array == pattern.find.array {
-                            continue;
-                        }
-                    }*/
+    
+        // For each rotation we care about, rotate a *fresh* copy of the pattern
+        for &rotation in &rotations {
+            let mut temp = pattern.clone();
+            temp.rotate(rotation);
+    
+            for y in 0..self.height() {
+                for x in 0..self.width() {
                     if self.check_pattern(x, y, &temp) {
                         results.push(Match {
                             pattern: temp.clone(),
-                            x, y,
+                            x,
+                            y,
                         });
                     }
                 }
             }
         }
+    
         results
     }
 
