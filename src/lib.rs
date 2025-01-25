@@ -238,14 +238,14 @@ pub trait Grid {
                 for rotation in &rotations {
                     temp.rotate(*rotation);
                     // Check if the pattern is the same as the original, in which case, we don't want duplicate matches.
-                    if *rotation != Rotation::None {
+                    /*if *rotation != Rotation::None {
                         if temp.find.array == pattern.find.array {
                             continue;
                         }
-                    }
-                    if self.check_pattern(x, y, &pattern) {
+                    }*/
+                    if self.check_pattern(x, y, &temp) {
                         results.push(Match {
-                            pattern: pattern.clone(),
+                            pattern: temp.clone(),
                             x, y,
                         });
                     }
@@ -424,14 +424,14 @@ impl Pattern {
             Rotation::Clockwise => {
                 self.find.swap_axes();
                 self.replace.swap_axes();
-                self.find.invert_axis(1);
-                self.replace.invert_axis(1);
+                self.find.invert_axis(0);
+                self.replace.invert_axis(0);
             },
             Rotation::Counter => {
                 self.find.swap_axes();
                 self.replace.swap_axes();
-                self.find.invert_axis(0);
-                self.replace.invert_axis(0);
+                self.find.invert_axis(1);
+                self.replace.invert_axis(1);
             },
             Rotation::Mirror => {
                 self.find.invert_axis(1);
