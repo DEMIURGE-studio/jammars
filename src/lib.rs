@@ -472,3 +472,34 @@ pub fn alphabet_color(cell: char) -> [u8; 3] {
         _ => [0xFF, 0xFF, 0xFF],
     }
 }
+
+
+pub struct VecGrid {
+    pub width: usize,
+    pub height: usize,
+    pub tiles: Vec<char>,
+}
+
+impl Grid for VecGrid {
+    fn width(&self) -> usize {
+        self.width
+    }
+
+    fn height(&self) -> usize {
+        self.height
+    }
+
+    fn get(&self, x: usize, y: usize) -> Option<char> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+        self.tiles.get(y * self.width + x).copied()
+    }
+
+    fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+        self.tiles.get_mut(y * self.width + x)
+    }
+}
