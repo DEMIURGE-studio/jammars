@@ -12,6 +12,8 @@ struct DefaultGrid {
 }
 
 impl Grid for DefaultGrid {
+    const DEPTH: u8 = 2;
+
     fn width(&self) -> usize {
         self.width
     }

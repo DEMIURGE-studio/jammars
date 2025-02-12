@@ -190,6 +190,7 @@ pub enum Symmetry {
 
 /// Trait interface to grids
 pub trait Grid {
+    const DEPTH: u8;
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     //fn symmetry(&self) -> &[Symmetry];
@@ -317,6 +318,8 @@ impl Grammar {
 }
 
 impl Grid for Grammar {
+    const DEPTH: u8 = 2;
+
     fn width(&self) -> usize {
         if self.swapped.get() {
             self.array.len()
@@ -481,6 +484,8 @@ pub struct VecGrid {
 }
 
 impl Grid for VecGrid {
+    const DEPTH: u8 = 2;
+
     fn width(&self) -> usize {
         self.width
     }
