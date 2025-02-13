@@ -21,6 +21,7 @@
 //! [technical notes]: https://gist.github.com/dogles/a926ab890552cc7e45400a930398449d
 
 use rand::prelude::*;
+use std::collections::HashSet;
 use std::cell::Cell;
 
 pub use rule_macros::*;
@@ -59,7 +60,20 @@ impl Rules {
             // Applies single rule
             Self::Rule(rule) => {
                 let mut matches = grid.find_matches(&rule.pattern, rule.symmetry);
-                rule.apply(grid, rng, &mut matches)
+                if !matches.is_empty() {
+                    let i = rng.gen_range(0..matches.len());
+                    let (rotation, choice) = matches.remove(i);
+                    let mut temp = rule.pattern.clone();
+                    temp.rotate(rotation);
+                    if grid.check_pattern(choice[0], choice[1], &temp) {
+                        grid.replace_pattern(choice[0], choice[1], &temp);
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
             },
             // Finds all matches for every rule and applies one at random each step
             Self::One(rules) => {
@@ -77,8 +91,10 @@ impl Rules {
                     false
                 } else {
                     let i = rng.gen_range(0..matches.len());
-                    let choice = matches[i].clone();
-                    rules[choice.0].apply(grid, rng, &mut vec![choice.1]);
+                    let (index, (rotation, choice)) = matches[i].clone();
+                    let mut temp = rules[index].pattern.clone();
+                    temp.rotate(rotation);
+                    grid.replace_pattern(choice[0], choice[1], &temp);
                     true
                 }
             },
@@ -102,8 +118,12 @@ impl Rules {
                     }
                     while !matches.is_empty() {
                         let i = rng.gen_range(0..matches.len());
-                        let choice = matches.remove(i);
-                        rules[*index].apply(grid, rng, &mut vec![choice.clone()]);
+                        let (rotation, choice) = matches.remove(i);
+                        let mut temp = rules[*index].pattern.clone();
+                        temp.rotate(rotation);
+                        if grid.check_pattern(choice[0], choice[1], &temp) {
+                            grid.replace_pattern(choice[0], choice[1], &temp);
+                        }
                     }
                     *index += 1;
                     true
@@ -165,9 +185,9 @@ pub struct Rule {
     pub symmetry: u8,
 }
 
-impl Rule {
+/*impl Rule {
     /// Apply a single match to the Grid
-    pub fn apply<G: Grid, R: RngCore>(&mut self, grid: &mut G, rng: &mut R, matches: &mut Vec<Match>) -> bool {
+    pub fn apply<G: Grid, R: RngCore>(&mut self, grid: &mut G, rng: &mut R, matches: &mut Vec<[usize; 2]>) -> bool {
         if !matches.is_empty() {
             let i = rng.gen_range(0..matches.len());
             let choice = matches.remove(i);
@@ -182,7 +202,7 @@ impl Rule {
             false
         }
     }
-}
+}*/
 
 pub enum Symmetry {
     X, Y, Z, W,
@@ -190,7 +210,8 @@ pub enum Symmetry {
 
 /// Trait interface to grids
 pub trait Grid {
-    const DEPTH: u8;
+    const DEPTH: usize;
+    fn bounds(&self) -> Vec<usize>;
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     //fn symmetry(&self) -> &[Symmetry];
@@ -198,12 +219,19 @@ pub trait Grid {
     fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut char>;
 
     fn set_origin(&mut self, origin: char) {
-        if let Some(tile) = self.get_mut(self.width() / 2, self.height() / 2) {
-            *tile = origin;
+        let bounds = self.bounds();
+        match Self::DEPTH {
+            2 => if let Some(tile) = self.get_mut(bounds[0] / 2, bounds[1] / 2) {
+                *tile = origin;
+            },
+            /*3 => if let Some(tile) = self.get_mut(bounds[2] / 2, bounds[1] / 2, bounds[0] / 2) {
+                *tile = origin;
+            },*/
+            _ => {},
         }
     }
 
-    fn find_matches(&self, pattern: &Pattern, symmetry: u8) -> Vec<Match> {
+    fn find_matches(&self, pattern: &Pattern, symmetry: u8) -> Vec<(Rotation, [usize; 2])> {
         let mut results = Vec::new();
         
         // Figure out which rotations we want to check based on symmetry bits
@@ -240,11 +268,7 @@ pub trait Grid {
             for y in 0..self.height() {
                 for x in 0..self.width() {
                     if self.check_pattern(x, y, &temp) {
-                        results.push(Match {
-                            pattern: temp.clone(),
-                            x,
-                            y,
-                        });
+                        results.push((rotation, [x, y]));
                     }
                 }
             }
@@ -271,19 +295,22 @@ pub trait Grid {
         true
     }
 
-    fn replace_pattern(&mut self, x: usize, y: usize, pattern: &Pattern) {
+    fn replace_pattern(&mut self, x: usize, y: usize, pattern: &Pattern) -> Vec<[usize; 2]> {
+        let mut affected = Vec::new();
         for tx in 0..pattern.replace.width() {
             for ty in 0..pattern.replace.height() {
                 let Some(replace) = pattern.replace.get(tx, ty) else {
-                    return;
+                    return affected;
                 };
                 if let Some(tile) = self.get_mut(x + tx, y + ty) {
                     if replace != '*' {
                         *tile = replace;
                     }
+                    affected.push([x + tx, y + ty]);
                 }
             }
         }
+        affected
     }
 }
 
@@ -318,7 +345,15 @@ impl Grammar {
 }
 
 impl Grid for Grammar {
-    const DEPTH: u8 = 2;
+    const DEPTH: usize = 2;
+
+    fn bounds(&self) -> Vec<usize> {
+        if self.swapped.get() {
+            vec![self.array.len(), self.array[0].len()]
+        } else {
+            vec![self.array[0].len(), self.array.len()]
+        }
+    }
 
     fn width(&self) -> usize {
         if self.swapped.get() {
@@ -484,7 +519,11 @@ pub struct VecGrid {
 }
 
 impl Grid for VecGrid {
-    const DEPTH: u8 = 2;
+    const DEPTH: usize = 2;
+
+    fn bounds(&self) -> Vec<usize> {
+        vec![self.width, self.height]
+    }
 
     fn width(&self) -> usize {
         self.width
