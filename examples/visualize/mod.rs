@@ -12,7 +12,11 @@ struct DefaultGrid {
 }
 
 impl Grid for DefaultGrid {
-    const DEPTH: u8 = 2;
+    const DEPTH: usize = 2;
+
+    fn bounds(&self) -> Vec<usize> {
+        vec![self.width, self.height]
+    }
 
     fn width(&self) -> usize {
         self.width
