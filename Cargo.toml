@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 macros = { path = "./proc-macros" }
-rand = "0.8"
-wyrand = "0.2"
+rand = { version = "0.9", features = ["os_rng"] }
+wyrand = "0.3"
 
 [dev-dependencies]
 terminal_size = "0.4"

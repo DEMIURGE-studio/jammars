@@ -53,7 +53,7 @@ pub fn runner(rules: &mut jammars::Rules) {
         height: height as usize,
         tiles: vec!['B'; width as usize * height as usize],
     };
-    let mut rng = WyRand::from_entropy();
+    let mut rng = WyRand::from_os_rng();
     print!("\x1B[?47h\x1B[?25l\x1B[2J");
     let mut temp = grid.tiles.clone();
     loop {

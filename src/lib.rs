@@ -61,7 +61,7 @@ impl Rules {
             Self::Rule(rule) => {
                 let mut matches = grid.find_matches(&rule.pattern, rule.symmetry);
                 if !matches.is_empty() {
-                    let i = rng.gen_range(0..matches.len());
+                    let i = rng.random_range(0..matches.len());
                     let (rotation, choice) = matches.remove(i);
                     let mut temp = rule.pattern.clone();
                     temp.rotate(rotation);
@@ -90,7 +90,7 @@ impl Rules {
                 if matches.is_empty() {
                     false
                 } else {
-                    let i = rng.gen_range(0..matches.len());
+                    let i = rng.random_range(0..matches.len());
                     let (index, (rotation, choice)) = matches[i].clone();
                     let mut temp = rules[index].pattern.clone();
                     temp.rotate(rotation);
@@ -117,7 +117,7 @@ impl Rules {
                         *count += matches.len();
                     }
                     while !matches.is_empty() {
-                        let i = rng.gen_range(0..matches.len());
+                        let i = rng.random_range(0..matches.len());
                         let (rotation, choice) = matches.remove(i);
                         let mut temp = rules[*index].pattern.clone();
                         temp.rotate(rotation);
@@ -273,7 +273,6 @@ pub trait Grid {
                 }
             }
         }
-    
         results
     }
 
